@@ -2,7 +2,6 @@ export interface Entry {
   path: string;
   offset: bigint;
   length: bigint;
-  flags: number;
 }
 
 export interface Footer {
@@ -11,5 +10,4 @@ export interface Footer {
 }
 
 export interface BuildOptions {
-  compress?: boolean;
 }

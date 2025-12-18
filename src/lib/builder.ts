@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
-import { Entry, BuildOptions } from './types';
+import type { Entry, BuildOptions } from './types';
 
 function getFiles(dir: string): string[] {
   const files: string[] = [];

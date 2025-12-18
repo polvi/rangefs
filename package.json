@@ -7,6 +7,7 @@
     "typecheck": "tsc"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
     "@types/bun": "latest",
     "wrangler": "^4.56.0"
   },

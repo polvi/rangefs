@@ -2,16 +2,31 @@ import { Entry } from './lib/types';
 
 interface Env {
   BUCKET: R2Bucket;
-  ARCHIVE_FILENAME: string;
+  CONFIG: KVNamespace;
 }
 
 let index: Map<string, Entry> | null = null;
+let cachedArchiveFilename: string | null = null;
+
+async function getArchiveFilename(env: Env): Promise<string> {
+  if (cachedArchiveFilename) return cachedArchiveFilename;
+  
+  const filename = await env.CONFIG.get('ARCHIVE_FILENAME');
+  if (!filename) {
+    throw new Error('ARCHIVE_FILENAME not found in KV');
+  }
+  
+  cachedArchiveFilename = filename;
+  return filename;
+}
 
 async function loadIndex(env: Env): Promise<void> {
   if (index) return;
 
+  const archiveFilename = await getArchiveFilename(env);
+
   // Fetch footer (last 16 bytes)
-  const footerResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
+  const footerResponse = await env.BUCKET.get(archiveFilename, {
     range: { suffix: 16 }
   });
   if (!footerResponse) throw new Error('Failed to fetch footer');
@@ -21,7 +36,7 @@ async function loadIndex(env: Env): Promise<void> {
   const indexLength = footerView.getBigUint64(8, true);
 
   // Fetch index
-  const indexResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
+  const indexResponse = await env.BUCKET.get(archiveFilename, {
     range: { offset: Number(indexOffset), length: Number(indexLength) }
   });
   if (!indexResponse) throw new Error('Failed to fetch index');
@@ -113,7 +128,9 @@ export default {
       return new Response('Not Found', { status: 404 });
     }
 
-    const fileResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
+    const archiveFilename = await getArchiveFilename(env);
+
+    const fileResponse = await env.BUCKET.get(archiveFilename, {
       range: { offset: Number(entry.offset), length: Number(entry.length) }
     });
     if (!fileResponse) {

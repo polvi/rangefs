@@ -1,25 +1,35 @@
-import { Entry, Footer } from './lib/types';
+import { Entry } from './lib/types';
 
-const ALL_FILE_URL = 'https://example.com/site.all'; // Replace with actual URL
+interface Env {
+  BUCKET: R2Bucket;
+}
 
 let index: Map<string, Entry> | null = null;
+let fileSize: bigint | null = null;
 
-async function loadIndex(): Promise<void> {
+async function loadIndex(env: Env): Promise<void> {
   if (index) return;
 
+  // Get file size from head
+  const head = await env.BUCKET.head('site.all');
+  if (!head) throw new Error('site.all not found');
+  fileSize = head.size;
+
   // Fetch footer (last 16 bytes)
-  const footerResponse = await fetch(ALL_FILE_URL, {
-    headers: { Range: 'bytes=-16' }
+  const footerResponse = await env.BUCKET.get('site.all', {
+    range: { offset: fileSize - 16n, length: 16 }
   });
+  if (!footerResponse) throw new Error('Failed to fetch footer');
   const footerBuffer = await footerResponse.arrayBuffer();
   const footerView = new DataView(footerBuffer);
   const indexOffset = footerView.getBigUint64(0, true);
   const indexLength = footerView.getBigUint64(8, true);
 
   // Fetch index
-  const indexResponse = await fetch(ALL_FILE_URL, {
-    headers: { Range: `bytes=${indexOffset}-${indexOffset + indexLength - 1n}` }
+  const indexResponse = await env.BUCKET.get('site.all', {
+    range: { offset: indexOffset, length: indexLength }
   });
+  if (!indexResponse) throw new Error('Failed to fetch index');
   const indexBuffer = await indexResponse.arrayBuffer();
   const indexView = new DataView(indexBuffer);
 
@@ -62,41 +72,38 @@ function getContentType(path: string): string {
   }
 }
 
-export async function handleRequest(request: Request): Promise<Response> {
-  await loadIndex();
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    await loadIndex(env);
 
-  const url = new URL(request.url);
-  let path = url.pathname.slice(1); // Remove leading /
-  if (path === '') path = 'index.html'; // Default to index.html for root
+    const url = new URL(request.url);
+    let path = url.pathname.slice(1); // Remove leading /
+    if (path === '') path = 'index.html'; // Default to index.html for root
 
-  const entry = index!.get(path);
-  if (!entry) {
-    return new Response('Not Found', { status: 404 });
+    const entry = index!.get(path);
+    if (!entry) {
+      return new Response('Not Found', { status: 404 });
+    }
+
+    const fileResponse = await env.BUCKET.get('site.all', {
+      range: { offset: entry.offset, length: entry.length }
+    });
+    if (!fileResponse) {
+      return new Response('Internal Server Error', { status: 500 });
+    }
+
+    const headers = new Headers();
+    headers.set('Content-Type', getContentType(path));
+    if (entry.flags & 1) { // gzip
+      headers.set('Content-Encoding', 'gzip');
+    } else if (entry.flags & 2) { // brotli
+      headers.set('Content-Encoding', 'br');
+    }
+    headers.set('Cache-Control', 'public, max-age=31536000'); // Long cache
+
+    return new Response(fileResponse.body, {
+      status: 200,
+      headers
+    });
   }
-
-  const rangeStart = entry.offset;
-  const rangeEnd = entry.offset + entry.length - 1n;
-
-  const fileResponse = await fetch(ALL_FILE_URL, {
-    headers: { Range: `bytes=${rangeStart}-${rangeEnd}` }
-  });
-
-  const headers = new Headers();
-  headers.set('Content-Type', getContentType(path));
-  if (entry.flags & 1) { // gzip
-    headers.set('Content-Encoding', 'gzip');
-  } else if (entry.flags & 2) { // brotli
-    headers.set('Content-Encoding', 'br');
-  }
-  headers.set('Cache-Control', 'public, max-age=31536000'); // Long cache
-
-  return new Response(fileResponse.body, {
-    status: 200,
-    headers
-  });
-}
-
-// For Cloudflare Workers
-addEventListener('fetch', (event) => {
-  event.respondWith(handleRequest(event.request));
-});
+};

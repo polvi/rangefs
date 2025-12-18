@@ -2,6 +2,7 @@ import { Entry } from './lib/types';
 
 interface Env {
   BUCKET: R2Bucket;
+  ARCHIVE_FILENAME: string;
 }
 
 let index: Map<string, Entry> | null = null;
@@ -10,7 +11,7 @@ async function loadIndex(env: Env): Promise<void> {
   if (index) return;
 
   // Fetch footer (last 16 bytes)
-  const footerResponse = await env.BUCKET.get('site.all', {
+  const footerResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
     range: { suffix: 16 }
   });
   if (!footerResponse) throw new Error('Failed to fetch footer');
@@ -20,7 +21,7 @@ async function loadIndex(env: Env): Promise<void> {
   const indexLength = footerView.getBigUint64(8, true);
 
   // Fetch index
-  const indexResponse = await env.BUCKET.get('site.all', {
+  const indexResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
     range: { offset: Number(indexOffset), length: Number(indexLength) }
   });
   if (!indexResponse) throw new Error('Failed to fetch index');
@@ -112,7 +113,7 @@ export default {
       return new Response('Not Found', { status: 404 });
     }
 
-    const fileResponse = await env.BUCKET.get('site.all', {
+    const fileResponse = await env.BUCKET.get(env.ARCHIVE_FILENAME, {
       range: { offset: Number(entry.offset), length: Number(entry.length) }
     });
     if (!fileResponse) {

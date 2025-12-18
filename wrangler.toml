@@ -2,6 +2,9 @@ name = "allball-demo"
 main = "src/worker.ts"
 compatibility_date = "2025-12-18"
 
+# Set ARCHIVE_FILENAME via: wrangler secret put ARCHIVE_FILENAME
+# or add to .dev.vars for local development
+
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "allball"

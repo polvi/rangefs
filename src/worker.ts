@@ -5,24 +5,16 @@ interface Env {
   CONFIG: KVNamespace;
 }
 
-let index: Map<string, Entry> | null = null;
-let cachedArchiveFilename: string | null = null;
-
 async function getArchiveFilename(env: Env): Promise<string> {
-  if (cachedArchiveFilename) return cachedArchiveFilename;
-  
   const filename = await env.CONFIG.get('ARCHIVE_FILENAME');
   if (!filename) {
     throw new Error('ARCHIVE_FILENAME not found in KV');
   }
   
-  cachedArchiveFilename = filename;
   return filename;
 }
 
-async function loadIndex(env: Env): Promise<void> {
-  if (index) return;
-
+async function loadIndex(env: Env): Promise<Map<string, Entry>> {
   const archiveFilename = await getArchiveFilename(env);
 
   // Fetch footer (last 16 bytes)
@@ -63,7 +55,7 @@ async function loadIndex(env: Env): Promise<void> {
     entries.push({ path, offset: entryOffset, length, flags });
   }
 
-  index = new Map(entries.map(e => [e.path, e]));
+  return new Map(entries.map(e => [e.path, e]));
 }
 
 function getContentType(path: string): string {
@@ -103,7 +95,7 @@ function isHtmlFile(path: string): boolean {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    await loadIndex(env);
+    const index = await loadIndex(env);
 
     const url = new URL(request.url);
     let path = url.pathname.slice(1); // Remove leading /
@@ -113,17 +105,17 @@ export default {
     if (path === '') {
       finalPath = 'index.html';
     } else {
-      let entry = index!.get(path);
+      let entry = index.get(path);
       if (!entry && !path.includes('.')) {
         finalPath = path + '/index.html';
-        entry = index!.get(finalPath);
+        entry = index.get(finalPath);
       }
       if (!entry) {
         return new Response('Not Found', { status: 404 });
       }
     }
 
-    const entry = index!.get(finalPath);
+    const entry = index.get(finalPath);
     if (!entry) {
       return new Response('Not Found', { status: 404 });
     }

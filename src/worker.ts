@@ -5,6 +5,10 @@ interface Env {
   CONFIG: KVNamespace;
 }
 
+// Module-level cache for the index
+let cachedIndex: Map<string, Entry> | null = null;
+let cachedArchiveFilename: string | null = null;
+
 async function getArchiveFilename(env: Env): Promise<string> {
   const filename = await env.CONFIG.get('ARCHIVE_FILENAME');
   if (!filename) {
@@ -58,6 +62,22 @@ async function loadIndex(env: Env): Promise<Map<string, Entry>> {
   return new Map(entries.map(e => [e.path, e]));
 }
 
+async function getIndex(env: Env): Promise<Map<string, Entry>> {
+  const archiveFilename = await getArchiveFilename(env);
+  
+  // Check if cache is valid
+  if (cachedIndex && cachedArchiveFilename === archiveFilename) {
+    return cachedIndex;
+  }
+  
+  // Cache miss or bust - reload index
+  const index = await loadIndex(env);
+  cachedIndex = index;
+  cachedArchiveFilename = archiveFilename;
+  
+  return index;
+}
+
 function getContentType(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase();
   switch (ext) {
@@ -95,7 +115,7 @@ function isHtmlFile(path: string): boolean {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const index = await loadIndex(env);
+    const index = await getIndex(env);
 
     const url = new URL(request.url);
     let path = url.pathname.slice(1); // Remove leading /

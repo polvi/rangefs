@@ -151,7 +151,6 @@ export default {
     headers.set("Content-Type", getContentType(finalPath));
 
     if (entry.flags & 1) headers.set("Content-Encoding", "gzip");
-    if (entry.flags & 2) headers.set("Content-Encoding", "br");
 
     // This is critical for proxies and CDNs
     headers.set("Cache-Control", "public, max-age=31536000, immutable");

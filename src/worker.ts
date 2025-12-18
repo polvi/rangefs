@@ -102,15 +102,11 @@ function getContentType(path: string): string {
   }
 }
 
-async function generateETag(path: string, content: ArrayBuffer): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest('SHA-256', content);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return `"${hashHex.substring(0, 16)}"`;
-}
-
-function isHtmlFile(path: string): boolean {
-  return path.endsWith('.html');
+function toSafeNumber(value: bigint): number {
+  if (value > Number.MAX_SAFE_INTEGER) {
+    throw new Error(`Value ${value} exceeds MAX_SAFE_INTEGER`);
+  }
+  return Number(value);
 }
 
 export default {
@@ -142,55 +138,26 @@ export default {
 
     const archiveFilename = await getArchiveFilename(env);
 
-    const fileResponse = await env.BUCKET.get(archiveFilename, {
-      range: { offset: Number(entry.offset), length: Number(entry.length) }
+    const obj = await env.BUCKET.get(archiveFilename, {
+      range: {
+        offset: toSafeNumber(entry.offset),
+        length: toSafeNumber(entry.length),
+      }
     });
-    if (!fileResponse) {
-      return new Response('Internal Server Error', { status: 500 });
-    }
 
-    let bodyContent: ArrayBuffer;
-    
-    // Decompress if needed
-    if (entry.flags & 1) { // gzip
-      const compressed = await fileResponse.arrayBuffer();
-      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')));
-      bodyContent = await decompressed.arrayBuffer();
-    } else {
-      bodyContent = await fileResponse.arrayBuffer();
-    }
-
-    // Generate ETag from actual content
-    const etag = await generateETag(finalPath, bodyContent);
-
-    // Check If-None-Match for 304 responses
-    const ifNoneMatch = request.headers.get('If-None-Match');
-    if (ifNoneMatch === etag) {
-      return new Response(null, {
-        status: 304,
-        headers: {
-          'ETag': etag
-        }
-      });
-    }
-
-    // Handle HEAD requests
-    if (request.method === 'HEAD') {
-      const headers = new Headers();
-      headers.set('Content-Type', getContentType(finalPath));
-      headers.set('ETag', etag);
-      
-      return new Response(null, {
-        status: 200,
-        headers
-      });
-    }
+    if (!obj) return new Response("Not found", { status: 404 });
 
     const headers = new Headers();
-    headers.set('Content-Type', getContentType(finalPath));
-    headers.set('ETag', etag);
+    headers.set("Content-Type", getContentType(finalPath));
 
-    return new Response(bodyContent, {
+    if (entry.flags & 1) headers.set("Content-Encoding", "gzip");
+    if (entry.flags & 2) headers.set("Content-Encoding", "br");
+
+    // This is critical for proxies and CDNs
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    headers.set("Vary", "Accept-Encoding");
+
+    return new Response(obj.body, {
       status: 200,
       headers
     });

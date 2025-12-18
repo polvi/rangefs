@@ -14,6 +14,78 @@ Core properties:
 * No runtime mutation or database required
 * Suitable for very large sites with frequent rebuilds
 
+## Usage
+
+### Installation
+
+Install dependencies using Bun:
+
+```bash
+bun install
+```
+
+### Building an archive
+
+Build a `.all` archive from a directory of static files:
+
+```bash
+bun run src/cli.ts build <input-directory> <output-file> [--compress]
+```
+
+Example:
+
+```bash
+bun run src/cli.ts build ./dist ./site.all --compress
+```
+
+This will create a `site.all` file containing all files from the `./dist` directory, with optional compression.
+
+### Deploying to Cloudflare
+
+#### 1. Upload the archive to R2
+
+Upload your `.all` file to Cloudflare R2:
+
+```bash
+wrangler r2 object put allball/site.all --file=./site.all
+```
+
+Replace `allball` with your R2 bucket name.
+
+#### 2. Configure the archive filename in KV
+
+Set the archive filename in Cloudflare KV so the worker knows which file to serve:
+
+```bash
+wrangler kv key put --binding=CONFIG ARCHIVE_FILENAME "site.all"
+```
+
+Or if using namespace ID directly:
+
+```bash
+wrangler kv key put --namespace-id=<your-kv-namespace-id> ARCHIVE_FILENAME "site.all"
+```
+
+#### 3. Deploy the worker
+
+Deploy the Cloudflare Worker:
+
+```bash
+wrangler deploy
+```
+
+Your static site will now be served from the `.all` archive via the worker.
+
+### Local development
+
+For local development with Wrangler:
+
+```bash
+wrangler dev
+```
+
+Make sure you have a `.dev.vars` file or have configured your KV namespace for local development.
+
 ## Format reference
 
 All integers are little endian.
@@ -128,7 +200,7 @@ The CLI is intended to run in CI as part of a static site build pipeline.
 Example usage:
 
 ```
-all build ./dist ./site.all
+bun run src/cli.ts build ./dist ./site.all
 ```
 
 ### Worker runtime

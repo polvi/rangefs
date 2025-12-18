@@ -74,9 +74,11 @@ function getContentType(path: string): string {
   }
 }
 
-function generateETag(path: string, offset: bigint, length: bigint): string {
-  // Simple ETag based on path and file metadata
-  return `"${path}-${offset}-${length}"`;
+async function generateETag(path: string, content: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', content);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `"${hashHex.substring(0, 16)}"`;
 }
 
 function isHtmlFile(path: string): boolean {
@@ -110,8 +112,30 @@ export default {
       return new Response('Not Found', { status: 404 });
     }
 
-    // Generate ETag
-    const etag = generateETag(finalPath, entry.offset, entry.length);
+    const fileResponse = await env.BUCKET.get('site.all', {
+      range: { offset: Number(entry.offset), length: Number(entry.length) }
+    });
+    if (!fileResponse) {
+      return new Response('Internal Server Error', { status: 500 });
+    }
+
+    let bodyContent: ArrayBuffer;
+    
+    // Decompress if needed
+    if (entry.flags & 1) { // gzip
+      const compressed = await fileResponse.arrayBuffer();
+      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')));
+      bodyContent = await decompressed.arrayBuffer();
+    } else if (entry.flags & 2) { // brotli
+      const compressed = await fileResponse.arrayBuffer();
+      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('br')));
+      bodyContent = await decompressed.arrayBuffer();
+    } else {
+      bodyContent = await fileResponse.arrayBuffer();
+    }
+
+    // Generate ETag from actual content
+    const etag = await generateETag(finalPath, bodyContent);
 
     // Check If-None-Match for 304 responses
     const ifNoneMatch = request.headers.get('If-None-Match');
@@ -119,10 +143,7 @@ export default {
       return new Response(null, {
         status: 304,
         headers: {
-          'ETag': etag,
-          'Cache-Control': isHtmlFile(finalPath) 
-            ? 'public, max-age=0, must-revalidate' 
-            : 'public, max-age=31536000, immutable'
+          'ETag': etag
         }
       });
     }
@@ -132,10 +153,6 @@ export default {
       const headers = new Headers();
       headers.set('Content-Type', getContentType(finalPath));
       headers.set('ETag', etag);
-      headers.set('Cache-Control', isHtmlFile(finalPath) 
-        ? 'public, max-age=0, must-revalidate' 
-        : 'public, max-age=31536000, immutable');
-      headers.set('X-Content-Type-Options', 'nosniff');
       
       return new Response(null, {
         status: 200,
@@ -143,43 +160,11 @@ export default {
       });
     }
 
-    const fileResponse = await env.BUCKET.get('site.all', {
-      range: { offset: Number(entry.offset), length: Number(entry.length) }
-    });
-    if (!fileResponse) {
-      return new Response('Internal Server Error', { status: 500 });
-    }
-
-    let body = fileResponse.body;
-    
-    // Decompress if needed
-    if (entry.flags & 1) { // gzip
-      const compressed = await fileResponse.arrayBuffer();
-      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')));
-      body = decompressed.body;
-    } else if (entry.flags & 2) { // brotli
-      const compressed = await fileResponse.arrayBuffer();
-      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('br')));
-      body = decompressed.body;
-    }
-
     const headers = new Headers();
     headers.set('Content-Type', getContentType(finalPath));
     headers.set('ETag', etag);
-    
-    // Different cache strategies for HTML vs assets
-    if (isHtmlFile(finalPath)) {
-      // HTML: always revalidate but allow caching
-      headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
-    } else {
-      // Assets: long-term cache with immutable flag
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    }
-    
-    // Security headers
-    headers.set('X-Content-Type-Options', 'nosniff');
 
-    return new Response(body, {
+    return new Response(bodyContent, {
       status: 200,
       headers
     });

@@ -100,16 +100,24 @@ export default {
       return new Response('Internal Server Error', { status: 500 });
     }
 
+    let body = fileResponse.body;
+    
+    // Decompress if needed
+    if (entry.flags & 1) { // gzip
+      const compressed = await fileResponse.arrayBuffer();
+      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')));
+      body = decompressed.body;
+    } else if (entry.flags & 2) { // brotli
+      const compressed = await fileResponse.arrayBuffer();
+      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate')));
+      body = decompressed.body;
+    }
+
     const headers = new Headers();
     headers.set('Content-Type', getContentType(finalPath));
-    if (entry.flags & 1) { // gzip
-      headers.set('Content-Encoding', 'gzip');
-    } else if (entry.flags & 2) { // brotli
-      headers.set('Content-Encoding', 'br');
-    }
     headers.set('Cache-Control', 'public, max-age=31536000'); // Long cache
 
-    return new Response(fileResponse.body, {
+    return new Response(body, {
       status: 200,
       headers
     });

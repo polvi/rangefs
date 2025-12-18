@@ -72,9 +72,23 @@ export default {
 
     const url = new URL(request.url);
     let path = url.pathname.slice(1); // Remove leading /
-    if (path === '') path = 'index.html'; // Default to index.html for root
+    path = path.replace(/\/$/, ''); // Remove trailing /
 
-    const entry = index!.get(path);
+    let finalPath = path;
+    if (path === '') {
+      finalPath = 'index.html';
+    } else {
+      let entry = index!.get(path);
+      if (!entry && !path.includes('.')) {
+        finalPath = path + '/index.html';
+        entry = index!.get(finalPath);
+      }
+      if (!entry) {
+        return new Response('Not Found', { status: 404 });
+      }
+    }
+
+    const entry = index!.get(finalPath);
     if (!entry) {
       return new Response('Not Found', { status: 404 });
     }
@@ -87,7 +101,7 @@ export default {
     }
 
     const headers = new Headers();
-    headers.set('Content-Type', getContentType(path));
+    headers.set('Content-Type', getContentType(finalPath));
     if (entry.flags & 1) { // gzip
       headers.set('Content-Encoding', 'gzip');
     } else if (entry.flags & 2) { // brotli

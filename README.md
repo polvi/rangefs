@@ -60,22 +60,6 @@ Set the archive filename in Cloudflare KV so the worker knows which file to serv
 wrangler kv key put --binding=CONFIG ARCHIVE_FILENAME "site.all"
 ```
 
-Or if using namespace ID directly:
-
-```bash
-wrangler kv key put --namespace-id=<your-kv-namespace-id> ARCHIVE_FILENAME "site.all"
-```
-
-#### 3. Deploy the worker
-
-Deploy the Cloudflare Worker:
-
-```bash
-wrangler deploy
-```
-
-Your static site will now be served from the `.all` archive via the worker.
-
 ### Local development
 
 For local development with Wrangler:
@@ -83,8 +67,6 @@ For local development with Wrangler:
 ```bash
 wrangler dev
 ```
-
-Make sure you have a `.dev.vars` file or have configured your KV namespace for local development.
 
 ## Format reference
 

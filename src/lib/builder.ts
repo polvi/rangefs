@@ -34,12 +34,9 @@ export function build(inputDir: string, outputFile: string, options: BuildOption
     let compressed = content;
     let flags = 0;
     
-    if (options.compress === 'gzip') {
+    if (options.compress) {
       compressed = zlib.gzipSync(content);
       flags |= 1; // gzip
-    } else if (options.compress === 'br') {
-      compressed = zlib.brotliCompressSync(content);
-      flags |= 2; // brotli
     }
     
     fs.writeSync(fd, compressed);

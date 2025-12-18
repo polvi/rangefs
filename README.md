@@ -29,7 +29,7 @@ bun install
 Build a `.all` archive from a directory of static files:
 
 ```bash
-bun run src/cli.ts build <input-directory> <output-file> [--compress=<gzip|br|none>]
+bun run src/cli.ts build <input-directory> <output-file> [--compress]
 ```
 
 Examples:
@@ -39,13 +39,10 @@ Examples:
 bun run src/cli.ts build ./dist ./site.all
 
 # With gzip compression
-bun run src/cli.ts build ./dist ./site.all --compress=gzip
-
-# With brotli compression
-bun run src/cli.ts build ./dist ./site.all --compress=br
+bun run src/cli.ts build ./dist ./site.all --compress
 ```
 
-This will create a `site.all` file containing all files from the `./dist` directory, with optional compression.
+This will create a `site.all` file containing all files from the `./dist` directory, with optional gzip compression.
 
 ### Deploying to Cloudflare
 
@@ -67,6 +64,16 @@ Set the archive filename in Cloudflare KV so the worker knows which file to serv
 wrangler kv key put --binding=CONFIG ARCHIVE_FILENAME "site.all"
 ```
 
+#### 3. Deploy the worker
+
+Deploy the Cloudflare Worker:
+
+```bash
+wrangler deploy
+```
+
+Your static site will now be served from the `.all` archive via the worker.
+
 ### Local development
 
 For local development with Wrangler:
@@ -74,6 +81,8 @@ For local development with Wrangler:
 ```bash
 wrangler dev
 ```
+
+Make sure you have a `.dev.vars` file or have configured your KV namespace for local development.
 
 ## Format reference
 
@@ -89,7 +98,7 @@ All integers are little endian.
 
 The file data section is a raw concatenation of file contents. Files are written back to back with no padding or alignment requirements.
 
-Each file may be stored either uncompressed or pre compressed at build time. Compression is transparent to the runtime and recorded in the index.
+Each file may be stored either uncompressed or pre compressed with gzip at build time. Compression is transparent to the runtime and recorded in the index.
 
 The order of files is determined at build time and does not matter at read time.
 
@@ -113,7 +122,6 @@ repeated entry_count times:
 Flags:
 
 * bit 0, gzip compressed
-* bit 1, brotli compressed
 * remaining bits reserved
 
 Offsets are relative to the beginning of the file data section.
@@ -179,7 +187,7 @@ Responsibilities:
 
 * Walk a directory tree and normalize paths
 * Apply ignore rules
-* Optionally pre compress files
+* Optionally pre compress files with gzip
 * Write file contents sequentially
 * Generate and append the index and footer
 * Produce a single immutable `.all` artifact
@@ -189,7 +197,7 @@ The CLI is intended to run in CI as part of a static site build pipeline.
 Example usage:
 
 ```
-bun run src/cli.ts build ./dist ./site.all --compress=gzip
+bun run src/cli.ts build ./dist ./site.all --compress
 ```
 
 ### Worker runtime

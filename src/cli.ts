@@ -8,7 +8,7 @@ if (command === 'build') {
     console.error('Usage: node cli.js build <inputDir> <outputFile>');
     process.exit(1);
   }
-  build(inputDir, outputFile, { compress: true }); // Default to compress for now
+  build(inputDir, outputFile, { compress: false }); // Default to not compress for demo
   console.log(`Built ${outputFile} from ${inputDir}`);
 } else {
   console.error('Unknown command. Use: build');

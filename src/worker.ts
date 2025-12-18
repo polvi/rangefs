@@ -152,8 +152,6 @@ export default {
 
     if (entry.flags & 1) headers.set("Content-Encoding", "gzip");
 
-    // This is critical for proxies and CDNs
-    headers.set("Cache-Control", "public, max-age=31536000, immutable");
     headers.set("Vary", "Accept-Encoding");
 
     return new Response(obj.body, {

@@ -17,7 +17,7 @@ async function loadIndex(env: Env): Promise<void> {
 
   // Fetch footer (last 16 bytes)
   const footerResponse = await env.BUCKET.get('site.all', {
-    range: { offset: fileSize - 16n, length: 16 }
+    range: { offset: fileSize - 16n, length: 16n }
   });
   if (!footerResponse) throw new Error('Failed to fetch footer');
   const footerBuffer = await footerResponse.arrayBuffer();

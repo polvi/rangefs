@@ -1,6 +1,6 @@
 # .all file format
 
-A `.all` (allball) file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite, but for static file systems rather than structured records.
+A `.all` (sort of like a tarball, allball) file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite, but for static file systems rather than structured records.
 
 An `.all` file is designed to be deployed to an object store and accessed via HTTP range requests. A lightweight runtime, such as a Cloudflare Worker, can resolve logical paths to byte ranges and stream individual files without unpacking the archive.
 

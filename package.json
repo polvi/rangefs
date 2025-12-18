@@ -8,8 +8,7 @@
     "wrangler": "^4.56.0"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }

@@ -146,7 +146,7 @@ export default {
       bodyContent = await decompressed.arrayBuffer();
     } else if (entry.flags & 2) { // brotli
       const compressed = await fileResponse.arrayBuffer();
-      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate')));
+      const decompressed = new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('br')));
       bodyContent = await decompressed.arrayBuffer();
     } else {
       bodyContent = await fileResponse.arrayBuffer();

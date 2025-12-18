@@ -29,13 +29,20 @@ bun install
 Build a `.all` archive from a directory of static files:
 
 ```bash
-bun run src/cli.ts build <input-directory> <output-file> [--compress]
+bun run src/cli.ts build <input-directory> <output-file> [--compress=<gzip|br|none>]
 ```
 
-Example:
+Examples:
 
 ```bash
-bun run src/cli.ts build ./dist ./site.all --compress
+# No compression (default)
+bun run src/cli.ts build ./dist ./site.all
+
+# With gzip compression
+bun run src/cli.ts build ./dist ./site.all --compress=gzip
+
+# With brotli compression
+bun run src/cli.ts build ./dist ./site.all --compress=br
 ```
 
 This will create a `site.all` file containing all files from the `./dist` directory, with optional compression.
@@ -182,7 +189,7 @@ The CLI is intended to run in CI as part of a static site build pipeline.
 Example usage:
 
 ```
-bun run src/cli.ts build ./dist ./site.all
+bun run src/cli.ts build ./dist ./site.all --compress=gzip
 ```
 
 ### Worker runtime

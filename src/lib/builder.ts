@@ -33,10 +33,15 @@ export function build(inputDir: string, outputFile: string, options: BuildOption
     const content = fs.readFileSync(path.join(inputDir, file));
     let compressed = content;
     let flags = 0;
-    if (options.compress) {
+    
+    if (options.compress === 'gzip') {
       compressed = zlib.gzipSync(content);
       flags |= 1; // gzip
+    } else if (options.compress === 'br') {
+      compressed = zlib.brotliCompressSync(content);
+      flags |= 2; // brotli
     }
+    
     fs.writeSync(fd, compressed);
     entries.push({
       path: file.replace(/\\/g, '/'), // normalize to /

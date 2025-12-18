@@ -11,5 +11,5 @@ export interface Footer {
 }
 
 export interface BuildOptions {
-  compress?: boolean;
+  compress?: 'gzip' | 'br' | 'none';
 }

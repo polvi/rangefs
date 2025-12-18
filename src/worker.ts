@@ -5,19 +5,13 @@ interface Env {
 }
 
 let index: Map<string, Entry> | null = null;
-let fileSize: bigint | null = null;
 
 async function loadIndex(env: Env): Promise<void> {
   if (index) return;
 
-  // Get file size from head
-  const head = await env.BUCKET.head('site.all');
-  if (!head) throw new Error('site.all not found');
-  fileSize = head.size;
-
   // Fetch footer (last 16 bytes)
   const footerResponse = await env.BUCKET.get('site.all', {
-    range: { offset: fileSize - 16n, length: 16n }
+    range: { suffix: 16 }
   });
   if (!footerResponse) throw new Error('Failed to fetch footer');
   const footerBuffer = await footerResponse.arrayBuffer();
@@ -27,7 +21,7 @@ async function loadIndex(env: Env): Promise<void> {
 
   // Fetch index
   const indexResponse = await env.BUCKET.get('site.all', {
-    range: { offset: indexOffset, length: indexLength }
+    range: { offset: Number(indexOffset), length: Number(indexLength) }
   });
   if (!indexResponse) throw new Error('Failed to fetch index');
   const indexBuffer = await indexResponse.arrayBuffer();
@@ -86,7 +80,7 @@ export default {
     }
 
     const fileResponse = await env.BUCKET.get('site.all', {
-      range: { offset: entry.offset, length: entry.length }
+      range: { offset: Number(entry.offset), length: Number(entry.length) }
     });
     if (!fileResponse) {
       return new Response('Internal Server Error', { status: 500 });

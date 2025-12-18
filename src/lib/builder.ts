@@ -69,12 +69,11 @@ export function build(inputDir: string, outputFile: string, options: BuildOption
     indexBuffers.push(entryBuffer);
   }
 
+  let indexLength = 0n;
   for (const buf of indexBuffers) {
+    indexLength += BigInt(buf.length);
     fs.writeSync(fd, buf);
   }
-
-  const indexEnd = fs.fstatSync(fd).size;
-  const indexLength = BigInt(indexEnd - Number(indexStart));
 
   // Write footer
   const footer = Buffer.alloc(16);

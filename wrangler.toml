@@ -5,7 +5,7 @@ workers_dev = true
 
 [[kv_namespaces]]
 binding = "CONFIG"
-id = "15ce64a84d2241a08fb345cc6d93d48b"
+id = "3db79397c0de484f8ac3f07e59cf57dd"
 
 [[r2_buckets]]
 binding = "BUCKET"

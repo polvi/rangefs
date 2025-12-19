@@ -9,3 +9,8 @@ id = "15ce64a84d2241a08fb345cc6d93d48b"
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "allball"
+
+[env.production]
+routes = [
+  { pattern = "*.faketime.com/*", zone_name = "faketime.com" }
+]

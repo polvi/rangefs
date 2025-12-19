@@ -9,17 +9,18 @@ interface Env {
 let cachedIndex: Map<string, Entry> | null = null;
 let cachedArchiveFilename: string | null = null;
 
-async function getArchiveFilename(env: Env): Promise<string> {
-  const filename = await env.CONFIG.get('ARCHIVE_FILENAME');
+async function getArchiveFilename(env: Env, hostname: string): Promise<string> {
+  const key = `${hostname}:ARCHIVE_FILENAME`;
+  const filename = await env.CONFIG.get(key);
   if (!filename) {
-    throw new Error('ARCHIVE_FILENAME not found in KV');
+    throw new Error(`${key} not found in KV`);
   }
   
   return filename;
 }
 
-async function loadIndex(env: Env): Promise<Map<string, Entry>> {
-  const archiveFilename = await getArchiveFilename(env);
+async function loadIndex(env: Env, hostname: string): Promise<Map<string, Entry>> {
+  const archiveFilename = await getArchiveFilename(env, hostname);
 
   // Fetch footer (last 16 bytes)
   const footerResponse = await env.BUCKET.get(archiveFilename, {
@@ -62,8 +63,8 @@ async function loadIndex(env: Env): Promise<Map<string, Entry>> {
   return new Map(entries.map(e => [e.path, e]));
 }
 
-async function getIndex(env: Env): Promise<Map<string, Entry>> {
-  const archiveFilename = await getArchiveFilename(env);
+async function getIndex(env: Env, hostname: string): Promise<Map<string, Entry>> {
+  const archiveFilename = await getArchiveFilename(env, hostname);
   
   // Check if cache is valid
   if (cachedIndex && cachedArchiveFilename === archiveFilename) {
@@ -71,7 +72,7 @@ async function getIndex(env: Env): Promise<Map<string, Entry>> {
   }
   
   // Cache miss or bust - reload index
-  const index = await loadIndex(env);
+  const index = await loadIndex(env, hostname);
   cachedIndex = index;
   cachedArchiveFilename = archiveFilename;
   
@@ -111,7 +112,12 @@ function toSafeNumber(value: bigint): number {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const index = await getIndex(env);
+    const hostname = request.headers.get('host');
+    if (!hostname) {
+      return new Response('Bad Request: Missing host header', { status: 400 });
+    }
+
+    const index = await getIndex(env, hostname);
 
     const url = new URL(request.url);
     let path = url.pathname.slice(1); // Remove leading /
@@ -136,7 +142,7 @@ export default {
       return new Response('Not Found', { status: 404 });
     }
 
-    const archiveFilename = await getArchiveFilename(env);
+    const archiveFilename = await getArchiveFilename(env, hostname);
 
     const obj = await env.BUCKET.get(archiveFilename, {
       range: {

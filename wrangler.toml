@@ -1,4 +1,4 @@
-name = "allball-demo"
+name = "rangefs-demo"
 main = "src/worker.ts"
 compatibility_date = "2025-12-18"
 workers_dev = true
@@ -9,7 +9,7 @@ id = "15ce64a84d2241a08fb345cc6d93d48b"
 
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "allball"
+bucket_name = "rangefs"
 
 [[routes]]
 pattern = "astro-100k.proc.io"

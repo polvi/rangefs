@@ -1,8 +1,8 @@
-# .all file format
+# .rangefs file format
 
-A `.all` (sort of like a tarball, allball) file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite, but for static file systems rather than structured records.
+A `.rangefs` file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite, but for static file systems rather than structured records.
 
-An `.all` file is designed to be deployed to an object store and accessed via HTTP range requests. A lightweight runtime, such as a Cloudflare Worker, can resolve logical paths to byte ranges and stream individual files without unpacking the archive.
+An `.rangefs` file is designed to be deployed to an object store and accessed via HTTP range requests. A lightweight runtime, such as a Cloudflare Worker, can resolve logical paths to byte ranges and stream individual files without unpacking the archive.
 
 You can think of it as PMTiles or cloud optimized GeoTIFFs, but generalized for arbitrary static assets.
 
@@ -26,7 +26,7 @@ bun install
 
 ### Building an archive
 
-Build a `.all` archive from a directory of static files:
+Build a `.rangefs` archive from a directory of static files:
 
 ```bash
 bun run src/cli.ts build <input-directory> <output-file>
@@ -35,29 +35,29 @@ bun run src/cli.ts build <input-directory> <output-file>
 Examples:
 
 ```bash
-bun run src/cli.ts build ./dist ./site.all
+bun run src/cli.ts build ./dist ./site.rangefs
 ```
 
-This will create a `site.all` file containing all files from the `./dist` directory.
+This will create a `site.rangefs` file containing all files from the `./dist` directory.
 
 ### Deploying to Cloudflare
 
 #### 1. Upload the archive to R2
 
-Upload your `.all` file to Cloudflare R2:
+Upload your `.rangefs` file to Cloudflare R2:
 
 ```bash
-wrangler r2 object put allball/site.all --file=./site.all
+wrangler r2 object put rangefs/site.rangefs --file=./site.rangefs
 ```
 
-Replace `allball` with your R2 bucket name.
+Replace `rangefs` with your R2 bucket name.
 
 #### 2. Configure the archive filename in KV
 
 Set the archive filename in Cloudflare KV so the worker knows which file to serve:
 
 ```bash
-wrangler kv key put --binding=CONFIG ARCHIVE_FILENAME "site.all"
+wrangler kv key put --binding=CONFIG ARCHIVE_FILENAME "site.rangefs"
 ```
 
 #### 3. Deploy the worker
@@ -68,7 +68,7 @@ Deploy the Cloudflare Worker:
 wrangler deploy
 ```
 
-Your static site will now be served from the `.all` archive via the worker.
+Your static site will now be served from the `.rangefs` archive via the worker.
 
 ### Local development
 
@@ -77,8 +77,6 @@ For local development with Wrangler:
 ```bash
 wrangler dev
 ```
-
-Make sure you have a `.dev.vars` file or have configured your KV namespace for local development.
 
 ## Format reference
 
@@ -165,11 +163,11 @@ PMTiles and cloud optimized GeoTIFFs demonstrate that indexed, range friendly fo
 
 ## This repository
 
-This repository contains a reference TypeScript implementation of the `.all` format, including both a build time CLI and a runtime HTTP reader designed for edge environments.
+This repository contains a reference TypeScript implementation of the `.rangefs` format, including both a build time CLI and a runtime HTTP reader designed for edge environments.
 
 ### CLI builder
 
-The CLI builds `.all` files from a directory of static assets.
+The CLI builds `.rangefs` files from a directory of static assets.
 
 Responsibilities:
 
@@ -177,25 +175,25 @@ Responsibilities:
 * Apply ignore rules
 * Write file contents sequentially
 * Generate and append the index and footer
-* Produce a single immutable `.all` artifact
+* Produce a single immutable `.rangefs` artifact
 
 The CLI is intended to run in CI as part of a static site build pipeline.
 
 Example usage:
 
 ```
-bun run src/cli.ts build ./dist ./site.all
+bun run src/cli.ts build ./dist ./site.rangefs
 ```
 
 ### Worker runtime
 
-The Worker implementation demonstrates how to serve an `.all` file from an object store using HTTP range requests.
+The Worker implementation demonstrates how to serve an `.rangefs` file from an object store using HTTP range requests.
 
 Responsibilities:
 
 * Fetch and cache the index on startup
 * Resolve request paths to byte ranges
-* Perform range requests against the `.all` object
+* Perform range requests against the `.rangefs` object
 * Stream responses with correct headers
 * Remain stateless and read only at runtime
 
@@ -205,11 +203,11 @@ The Worker is designed to be small, dependency light, and suitable for Cloudflar
 
 The implementations in this repository are intended to be reference quality, not prescriptive. Other languages, build systems, and runtimes are expected to implement compatible readers and writers.
 
-The `.all` format itself is intentionally simple so it can be implemented correctly from the specification alone.
+The `.rangefs` format itself is intentionally simple so it can be implemented correctly from the specification alone.
 
 ## Design goals
 
-The `.all` format intentionally prioritizes:
+The `.rangefs` format intentionally prioritizes:
 
 * Simplicity over generality
 * Build time complexity over runtime complexity

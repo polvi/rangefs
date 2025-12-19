@@ -26,7 +26,7 @@ async function loadIndex(env: Env, hostname: string): Promise<Map<string, Entry>
   const footerResponse = await env.BUCKET.get(archiveFilename, {
     range: { suffix: 16 }
   });
-  if (!footerResponse) throw new Error('Failed to fetch footer');
+  if (!footerResponse) throw new Error(`Cannot find archive at ${archiveFilename}`);
   const footerBuffer = await footerResponse.arrayBuffer();
   const footerView = new DataView(footerBuffer);
   const indexOffset = footerView.getBigUint64(0, true);

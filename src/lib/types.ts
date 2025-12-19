@@ -2,6 +2,7 @@ export interface Entry {
   path: string;
   offset: bigint;
   length: bigint;
+  flags: number;
 }
 
 export interface Footer {

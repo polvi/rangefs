@@ -31,22 +31,16 @@ export function build(inputDir: string, outputFile: string, options: BuildOption
 
   for (const file of files) {
     const content = fs.readFileSync(path.join(inputDir, file));
-    let compressed = content;
     let flags = 0;
     
-    if (options.compress) {
-      compressed = zlib.gzipSync(content);
-      flags |= 1; // gzip
-    }
-    
-    fs.writeSync(fd, compressed);
+    fs.writeSync(fd, content);
     entries.push({
       path: file.replace(/\\/g, '/'), // normalize to /
       offset,
-      length: BigInt(compressed.length),
+      length: BigInt(content.length),
       flags
     });
-    offset += BigInt(compressed.length);
+    offset += BigInt(content.length);
   }
 
   // Write index

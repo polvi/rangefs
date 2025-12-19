@@ -8,6 +8,7 @@ interface Env {
 // Module-level cache for the index
 let cachedIndex: Map<string, Entry> | null = null;
 let cachedArchiveFilename: string | null = null;
+let cachedEtag: string | null = null;
 
 async function getArchiveFilename(env: Env, hostname: string): Promise<string> {
   const key = `${hostname}:ARCHIVE_FILENAME`;
@@ -66,8 +67,15 @@ async function loadIndex(env: Env, hostname: string): Promise<Map<string, Entry>
 async function getIndex(env: Env, hostname: string): Promise<Map<string, Entry>> {
   const archiveFilename = await getArchiveFilename(env, hostname);
   
+  // Get the archive file's metadata to check etag
+  const archiveHead = await env.BUCKET.head(archiveFilename);
+  if (!archiveHead) {
+    throw new Error(`Cannot find archive at ${archiveFilename}`);
+  }
+  const currentEtag = archiveHead.etag;
+  
   // Check if cache is valid
-  if (cachedIndex && cachedArchiveFilename === archiveFilename) {
+  if (cachedIndex && cachedArchiveFilename === archiveFilename && cachedEtag === currentEtag) {
     return cachedIndex;
   }
   
@@ -75,6 +83,7 @@ async function getIndex(env: Env, hostname: string): Promise<Map<string, Entry>>
   const index = await loadIndex(env, hostname);
   cachedIndex = index;
   cachedArchiveFilename = archiveFilename;
+  cachedEtag = currentEtag;
   
   return index;
 }

@@ -6,12 +6,12 @@ workers_dev = true
 [[kv_namespaces]]
 binding = "CONFIG"
 id = "3db79397c0de484f8ac3f07e59cf57dd"
-remote = true
+#remote = true
 
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "rangefs"
-remote = true
+#remote = true
 
 [[routes]]
 pattern = "astro-100k.proc.io"

@@ -1,10 +1,10 @@
 # .rangefs file format
 
-A `.rangefs` file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite, but for static file systems rather than structured records.
+A `.rangefs` file is an immutable file format for distributing static site content as a single, indexed artifact. It is conceptually similar to SQLite or squashfs, but for static file systems rather than structured records or a POSIX filesytem. 
 
 An `.rangefs` file is designed to be deployed to an object store and accessed via HTTP range requests. A lightweight runtime, such as a Cloudflare Worker, can resolve logical paths to byte ranges and stream individual files without unpacking the archive.
 
-You can think of it as PMTiles or cloud optimized GeoTIFFs, but generalized for arbitrary static assets.
+It is intended to be simple enough an LLM could easily understand the file format based on his README alone. If the `.rangefs` file was publically exposed, this would allow AI agents to fetch all the data they need, without hammering the server with individual requests. 
 
 Core properties:
 
@@ -153,6 +153,8 @@ Zip includes a central directory at the end of the file, which makes random acce
 
 Additionally, zip compression is file oriented but opaque to streaming runtimes, and the format carries significant historical complexity that is unnecessary for static site distribution.
 
+
+
 ### Others
 
 Formats like squashfs, cpio, or container image layers are optimized for operating systems or container runtimes, not HTTP range access. They often require kernel support, mounting semantics, or full extraction before use.
@@ -204,13 +206,3 @@ The Worker is designed to be small, dependency light, and suitable for Cloudflar
 The implementations in this repository are intended to be reference quality, not prescriptive. Other languages, build systems, and runtimes are expected to implement compatible readers and writers.
 
 The `.rangefs` format itself is intentionally simple so it can be implemented correctly from the specification alone.
-
-## Design goals
-
-The `.rangefs` format intentionally prioritizes:
-
-* Simplicity over generality
-* Build time complexity over runtime complexity
-* Sequential writes and random reads
-* HTTP native access patterns
-* Easy implementation in Workers and serverless runtimes

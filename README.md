@@ -18,9 +18,9 @@ Core properties:
 
 This is a POC spec and implementation of the file format. There are many improvements that could be added:
 
-[ ] File hashes in the index
-[ ] `.rangefs` diffing
-[ ] Versioning
+- [ ] File hashes in the index
+- [ ] `.rangefs` diffing
+- [ ] Versioning
 
 ## Usage
 

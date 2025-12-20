@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "deploy": "bun run src/deploy.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

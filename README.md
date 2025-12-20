@@ -14,6 +14,14 @@ Core properties:
 * No runtime mutation or database required
 * Suitable for very large sites with frequent rebuilds
 
+# Project Status
+
+This is a POC spec and implementation of the file format. There are many improvements that could be added:
+
+[ ] File hashes in the index
+[ ] `.rangefs` diffing
+[ ] Versioning
+
 ## Usage
 
 ### Installation

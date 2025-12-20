@@ -21,6 +21,7 @@ This is a POC spec and implementation of the file format. There are many improve
 - [ ] File hashes in the index
 - [ ] `.rangefs` diffing
 - [ ] Versioning
+- [ ] Perfect minimal hashing in the index
 
 ## Usage
 

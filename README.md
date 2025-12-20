@@ -4,7 +4,7 @@ A `.rangefs` file is an immutable file format for distributing static site conte
 
 An `.rangefs` file is designed to be deployed to an object store and accessed via HTTP range requests. A lightweight runtime, such as a Cloudflare Worker, can resolve logical paths to byte ranges and stream individual files without unpacking the archive.
 
-It is intended to be simple enough an LLM could easily understand the file format based on his README alone. If the `.rangefs` file was publically exposed, this would allow AI agents to fetch all the data they need, without hammering the server with individual requests. 
+It is intended to be simple enough an LLM could easily understand the file format based on this README alone. If the `.rangefs` file was publically exposed, this would allow AI agents to fetch all the data they need, without hammering the server with individual requests. 
 
 Core properties:
 
